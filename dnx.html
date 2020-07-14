@@ -223,32 +223,32 @@
                 value: {numero: 20}
             });
             document.getElementById("outer").context.numero++;
-        </script>
+        </script>-->
 
         <div id="nested" dnx-contextName="context" dnx-contextValue="this.context">
             <button dnx-click="window.alert(context.x)">X</button>
             <div>
-                <template dnx-items="context.numeros" dnx-item="a"> 
+                <div dnx-items="context.numeros" dnx-item="a"> 
                     <div>
                         <button dnx-click="window.alert(context.x +' '+a);">X A</button>
                         <div>
-                            <template dnx-items="context.numeros" dnx-item="b">
+                            <div dnx-items="context.numeros" dnx-item="b">
                                 <div>
                                     <button dnx-click="window.alert(context.x +' '+a+' '+b);">X A B</button>
                                     <div>
-                                        <template dnx-items="context.numeros" dnx-item="c">
+                                        <div dnx-items="context.numeros" dnx-item="c">
                                             <div>
                                                 <button dnx-click="window.alert(context.x+' '+a+' '+b+' '+c);">X A B C</button>
                                             </div>
-                                        </template>
+                                        </div>
                                     </div>
                                     <button dnx-click="window.alert(context.x +' '+a+' '+b);">X A B</button>
                                 </div>
-                            </template>
+                            </div>
                         </div>
                         <button dnx-click="window.alert(context.x +' '+a);">X A</button>
                     </div>
-                </template>
+                </div>
             </div>
             <button dnx-click="window.alert(context.x);">X</button>
         </div>
@@ -263,7 +263,7 @@
             });
         </script>
 
-        <hr/>
+        <!--<hr/>
         <div id="xyz" dnx-contextValue="this.context">
             <span dnx-innerHTML="context.text"></span>
             <br/>
