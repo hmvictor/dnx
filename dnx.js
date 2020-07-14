@@ -112,6 +112,8 @@ const evaluator={
     }
 };
 
+let processedElements=[];
+
 function process(element, environment) {
     let updaters=[];
     
@@ -120,31 +122,36 @@ function process(element, environment) {
     }
 
     const processorsBySelector={
-        "template[dnx-items]": function(e, attributeName, attributeValue, environment) {
-            let parentNode=e.parentNode;
-            let nodes=[];
+        "[dnx-items]": function(e, attributeName, attributeValue, environment) {
+            let parent=e.parentNode;
+            let sibling=e.nextSibling;
+            let generated=[];
             updaters.push(() => {
-                for(let n of nodes) {
-                    n.remove();
+                e.dnxRenderIgnore=true;
+                for(let g of generated) {
+                    g.remove();
                 }
-                nodes.length=0;
+                generated.length=0;
                 for(let item of Function(environment.getVarNames(), "return "+attributeValue+";").apply(null, environment.getVarValues())) {
-                    let cloneNode=e.content.cloneNode(true);
+                    let cloneNode=e.cloneNode(true);
                     process(cloneNode, environment.add({
                         name: e.getAttribute("dnx-item"),
                         value: item
                     }));
-                    cloneNode.querySelectorAll(":scope > *").forEach(node => {
-                        nodes.push(node);
-                    });
-                    parentNode.appendChild(cloneNode);
+                    parent.insertBefore(cloneNode, sibling);
+                    generated.push(cloneNode);
+                    cloneNode.dnxRenderIgnore=true;
                     cloneNode.dnxUpdate();
                 }
+                e.remove();
             });
+            processedElements.push(e);
         },
         "[dnx-innerHTML]": function(e, attributeName, attributeValue, environment) {
             updaters.push(() => {
-                attributeCopier(e, attributeName, attributeValue, environment);
+                if(!e.dnxRenderIgnore){
+                    attributeCopier(e, attributeName, attributeValue, environment);
+                }
             });
         },
         "[dnx-attached]": function(e, attributeName, attributeValue, environment) {
@@ -251,12 +258,21 @@ function process(element, environment) {
     for(let selector in processorsBySelector) {
         for(let e of element.querySelectorAll(selector)) {
             //TODO: escenarios: e is in another root
-            for(let aName of e.getAttributeNames()) {
-                if(match(e.tagName.toLowerCase(), aName, selector)) {
-                    let dnxAttributeName=/.*\[(dnx-.+)\]/.exec(selector)[1];
-                    let attributeName=/dnx-(.+)/.exec(dnxAttributeName)[1]
-                    console.log("prepare attribute"+selector+": "+dnxAttributeName);
-                    processorsBySelector[selector](e, attributeName, e.getAttribute(dnxAttributeName), environment);
+            let b=false;
+            for(let p of processedElements) {
+                if(p.contains(e)) {
+                   b=true;
+                   break;
+                }
+            }
+            if(!b){
+                for(let aName of e.getAttributeNames()) {
+                    if(match(e.tagName.toLowerCase(), aName, selector)) {
+                        let dnxAttributeName=/.*\[(dnx-.+)\]/.exec(selector)[1];
+                        let attributeName=/dnx-(.+)/.exec(dnxAttributeName)[1]
+                        console.log("prepare attribute"+selector+": "+dnxAttributeName);
+                        processorsBySelector[selector](e, attributeName, e.getAttribute(dnxAttributeName), environment);
+                    }
                 }
             }
         }

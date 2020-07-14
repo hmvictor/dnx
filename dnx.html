@@ -6,6 +6,48 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </head>
     <body>
+        <div id="divX">
+            <div dnx-innerHTML="context.person.name"></div>
+            <div dnx-items="context.person.phones" dnx-item="phone" style="border: solid 1px blue;">
+                <div dnx-innerHTML="phone.tipo">Telefono</div>
+                <div dnx-items="phone.digits" dnx-item="digit"  style="border: solid 1px blueviolet">
+                    <span dnx-innerHTML="digit">Digit</span>
+                </div>
+                <span>XYZ</span>
+            </div>
+            <input dnx-value="context.person.name"/>
+        </div>
+        
+        <script type="module">
+            import {dnx} from "./dnx.js";
+
+            dnx(document.getElementById("divX"), {
+                value: {
+                    person: {
+                        name: "Victor Herrera",
+                        phones: [
+                            {
+                                tipo: "casa",
+                                digits: [1, 2, 3, 4]
+                            },
+                            {
+                                tipo: "trabajo",
+                                digits: [5, 6, 7, 8]
+                            }
+                        ]
+                    }
+                }
+            });
+        </script>
+        
+<!--        <div id="simpleList">
+            <ul>
+                <li dnx-items="context.persons" dnx-item="person">
+                    <span dnx-innerHTML="person.name"></span>
+                </li>
+            </ul>
+        </div>
+        
         <div id="div1">
             <div dnx-innerHTML="context.person.name"></div>
             <div>
@@ -42,7 +84,7 @@
             });
         </script>
 
-<!--        <hr/>
+        <hr/>
         <form id="form">
             <input type="text" dnx-value="context.numero.value"/>
             <div dnx-innerHTML="context.numero.value"></div>
@@ -144,9 +186,11 @@
         <hr/>
         <div id="container2">
             <div dnx-innerHTML="context.person.name"></div>
-            <template dnx-items="context.person.phones" dnx-item="phone">
-                <div dnx-innerHTML="phone"></div>
-            </template>
+            <div>
+                <template dnx-items="context.person.phones" dnx-item="phone">
+                    <div dnx-innerHTML="phone"></div>
+                </template>
+            </div>
         </div>
         <script type="module">
             import {dnx} from "./dnx.js";
@@ -183,23 +227,29 @@
 
         <div id="nested" dnx-contextName="context" dnx-contextValue="this.context">
             <button dnx-click="window.alert(context.x)">X</button>
-            <template dnx-items="context.numeros" dnx-item="a"> 
-                <div>
-                    <button dnx-click="window.alert(context.x +' '+a);">X A</button>
-                    <template dnx-items="context.numeros" dnx-item="b">
+            <div>
+                <template dnx-items="context.numeros" dnx-item="a"> 
+                    <div>
+                        <button dnx-click="window.alert(context.x +' '+a);">X A</button>
                         <div>
-                            <button dnx-click="window.alert(context.x +' '+a+' '+b);">X A B</button>
-                            <template dnx-items="context.numeros" dnx-item="c">
+                            <template dnx-items="context.numeros" dnx-item="b">
                                 <div>
-                                    <button dnx-click="window.alert(context.x+' '+a+' '+b+' '+c);">X A B C</button>
+                                    <button dnx-click="window.alert(context.x +' '+a+' '+b);">X A B</button>
+                                    <div>
+                                        <template dnx-items="context.numeros" dnx-item="c">
+                                            <div>
+                                                <button dnx-click="window.alert(context.x+' '+a+' '+b+' '+c);">X A B C</button>
+                                            </div>
+                                        </template>
+                                    </div>
+                                    <button dnx-click="window.alert(context.x +' '+a+' '+b);">X A B</button>
                                 </div>
                             </template>
-                            <button dnx-click="window.alert(context.x +' '+a+' '+b);">X A B</button>
                         </div>
-                    </template>
-                    <button dnx-click="window.alert(context.x +' '+a);">X A</button>
-                </div>
-            </template>
+                        <button dnx-click="window.alert(context.x +' '+a);">X A</button>
+                    </div>
+                </template>
+            </div>
             <button dnx-click="window.alert(context.x);">X</button>
         </div>
         <script type="module">
