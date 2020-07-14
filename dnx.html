@@ -8,12 +8,16 @@
     <body>
         <div id="div1">
             <div dnx-innerHTML="context.person.name"></div>
-            <template dnx-items="context.person.phones" dnx-item="phone">
-                <div dnx-innerHTML="phone.tipo">Telefono</div>
-                <template dnx-items="phone.digits" dnx-item="digit">
-                    <span dnx-innerHTML="digit">Digit</span>
+            <div>
+                <template dnx-items="context.person.phones" dnx-item="phone">
+                    <div dnx-innerHTML="phone.tipo">Telefono</div>
+                    <div>
+                        <template dnx-items="phone.digits" dnx-item="digit">
+                            <span dnx-innerHTML="digit">Digit</span>
+                        </template>
+                    </div>
                 </template>
-            </template>
+            </div>
         </div>
 
         <script type="module">

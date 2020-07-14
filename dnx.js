@@ -120,22 +120,17 @@ function process(element, environment) {
     }
 
     const processorsBySelector={
-        "[dnx-items]": function(e, attributeName, attributeValue, environment) {
+        "template[dnx-items]": function(e, attributeName, attributeValue, environment) {
             let parentNode=e.parentNode;
-            let generatedNodes=[];
             updaters.push(() => {
-                generatedNodes.forEach(node => {
-                   parentNode.removeChild(node); 
-                });
-                generatedNodes.length=0;
+                parentNode.textContent="";
                 for(let item of Function(environment.getVarNames(), "return "+attributeValue+";").apply(null, environment.getVarValues())) {
                     let cloneNode=e.content.cloneNode(true);
                     process(cloneNode, environment.add({
                         name: e.getAttribute("dnx-item"),
                         value: item
                     }));
-                    generatedNodes.push(cloneNode);
-                    e.before(cloneNode);
+                    parentNode.appendChild(cloneNode);
                     cloneNode.dnxUpdate();
                 }
             });
