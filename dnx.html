@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>dnx Project</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body>
+        <div id="div1">
+            <div dnx-innerHTML="context.person.name"></div>
+            <template dnx-items="context.person.phones" dnx-item="phone">
+                <div dnx-innerHTML="phone.tipo">Telefono</div>
+                <template dnx-items="phone.digits" dnx-item="digit">
+                    <span dnx-innerHTML="digit">Digit</span>
+                </template>
+            </template>
+        </div>
+
+        <script type="module">
+            import {dnx} from "./dnx.js";
+
+            dnx(document.getElementById("div1"), {
+                value: {
+                    person: {
+                        name: "Victor Herrera",
+                        phones: [
+                            {
+                                tipo: "casa",
+                                digits: [1, 2, 3, 4]
+                            },
+                            {
+                                tipo: "trabajo",
+                                digits: [5, 6, 7, 8]
+                            }
+                        ]
+                    }
+                }
+            });
+        </script>
+
+        <hr/>
+        <form id="form">
+            <input type="text" dnx-value="context.numero.value"/>
+            <div dnx-innerHTML="context.numero.value"></div>
+        </form>
+        <script type="module">
+            import {dnx} from "./dnx.js";
+
+            dnx(document.getElementById("form"), {
+                value: {
+                    numero: {
+                        value: 10
+                    }
+                }
+            });
+        </script>
+
+        <hr/>
+        <form id="formIncrement">
+            <input type="text" dnx-value="context.numero.value"/>
+            <button type="button" dnx-click="context.numero.value++;">Incrementar</button>
+        </form>
+        <script type="module">
+            import {dnx} from "./dnx.js";
+
+            dnx(document.getElementById("formIncrement"), {
+                value: {
+                    numero: {
+                        value: 5
+                    }
+                }
+            });
+        </script>
+
+        <hr/>
+        <ul id="animales">
+            <template dnx-items="context.animales" dnx-item="animal">
+                <li dnx-innerHTML="animal"></li>
+            </template>
+        </ul>
+        <script type="module">
+            import {dnx} from "./dnx.js";
+
+            dnx(document.getElementById("animales"), {
+                value: {
+                    animales: ["perro", "gato", "pollo", "oso"]
+                }
+            });
+        </script>
+
+        <hr/>
+        <div id="animalesDynamic" dnx-contextName="zoologico" dnx-contextValue="this.zoologico">
+            <ul>
+                <template dnx-items="zoologico.animales" dnx-item="animal">
+                    <li>
+                        <div dnx-innerHTML="animal.nombre"></div>
+                        <input type="text" dnx-value="animal.nombre"/>
+                    </li>
+                </template>
+            </ul>
+            <form>
+                <input type="text" dnx-value="zoologico.nuevoAnimal"/>
+                <button type="button" dnx-click="zoologico.agregarAnimal();">Agregar</button>
+            </form>
+        </div>
+        <script type="module">
+            import {dnx} from "./dnx.js";
+
+            dnx("animalesDynamic", {
+                value: {
+                    animales: [
+                        {nombre: "perro"}, 
+                        {nombre: "gato"}, 
+                        {nombre: "pollo"}, 
+                        {nombre: "oso"}
+                    ],
+                    nuevoAnimal: "",
+                    agregarAnimal: function() {
+                        this.animales.push({nombre:this.nuevoAnimal}); 
+                        this.nuevoAnimal="";
+                    }
+                }
+            });
+        </script>
+
+        <hr/>
+        <div id="container">
+            <span dnx-innerHTML="window.numero"></span>
+        </div>
+        <script type="module">
+            import {dnx} from "./dnx.js";
+
+            window.numero=5;
+
+            dnx(document.getElementById("container"), {
+                value: {}
+            });
+        </script>
+
+        <hr/>
+        <div id="container2">
+            <div dnx-innerHTML="context.person.name"></div>
+            <template dnx-items="context.person.phones" dnx-item="phone">
+                <div dnx-innerHTML="phone"></div>
+            </template>
+        </div>
+        <script type="module">
+            import {dnx} from "./dnx.js";
+
+            dnx(document.getElementById("container2"), {
+                value: {
+                    person:{
+                        name: "Víctor",
+                        phones: ["12345", "67890"]
+                    }
+                }
+            });
+        </script>
+
+        <hr/>
+        <div id="outer" dnx-contextValue="this.context">
+            <span dnx-innerHTML="context.numero"></span>
+            <div id="inner" dnx-contextName="context" dnx-contextValue="this.context">
+                <span dnx-innerHTML="context.numero"></span>
+            </div>
+        </div>
+        <script type="module">
+            import {dnx} from "./dnx.js";
+
+            dnx("inner",{
+                value: {numero: 13}
+            });
+
+            dnx("outer", {
+                value: {numero: 20}
+            });
+            document.getElementById("outer").context.numero++;
+        </script>
+
+        <div id="nested" dnx-contextName="context" dnx-contextValue="this.context">
+            <button dnx-click="window.alert(context.x)">X</button>
+            <template dnx-items="context.numeros" dnx-item="a"> 
+                <div>
+                    <button dnx-click="window.alert(context.x +' '+a);">X A</button>
+                    <template dnx-items="context.numeros" dnx-item="b">
+                        <div>
+                            <button dnx-click="window.alert(context.x +' '+a+' '+b);">X A B</button>
+                            <template dnx-items="context.numeros" dnx-item="c">
+                                <div>
+                                    <button dnx-click="window.alert(context.x+' '+a+' '+b+' '+c);">X A B C</button>
+                                </div>
+                            </template>
+                            <button dnx-click="window.alert(context.x +' '+a+' '+b);">X A B</button>
+                        </div>
+                    </template>
+                    <button dnx-click="window.alert(context.x +' '+a);">X A</button>
+                </div>
+            </template>
+            <button dnx-click="window.alert(context.x);">X</button>
+        </div>
+        <script type="module">
+            import {dnx} from "./dnx.js";
+
+            dnx("nested", {
+                value: {
+                    x: "x",
+                    numeros: [1, 2, 3]
+                }
+            });
+        </script>
+
+        <hr/>
+        <div id="xyz" dnx-contextValue="this.context">
+            <span dnx-innerHTML="context.text"></span>
+            <br/>
+            <input dnx-disabled="context.text === 'abc'"/>
+            <br/>
+            <input dnx-value="context.text"/>
+            <br/>
+            <button type="button" dnx-click="console.log('click: '+context.text);">Click Me!</button>
+            <button dnx-attached="context.text === 'abc'" type="button">Button</button>
+            <br/>
+            <br/>
+        </div>
+        <script type="module">
+            import {dnx} from "./dnx.js";
+
+            dnx("xyz", {value:{text: "qwerty"}});
+        </script>
+    </body>
+</html>
