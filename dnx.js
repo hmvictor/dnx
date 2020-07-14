@@ -122,14 +122,21 @@ function process(element, environment) {
     const processorsBySelector={
         "template[dnx-items]": function(e, attributeName, attributeValue, environment) {
             let parentNode=e.parentNode;
+            let nodes=[];
             updaters.push(() => {
-                parentNode.textContent="";
+                for(let n of nodes) {
+                    n.remove();
+                }
+                nodes.length=0;
                 for(let item of Function(environment.getVarNames(), "return "+attributeValue+";").apply(null, environment.getVarValues())) {
                     let cloneNode=e.content.cloneNode(true);
                     process(cloneNode, environment.add({
                         name: e.getAttribute("dnx-item"),
                         value: item
                     }));
+                    cloneNode.querySelectorAll(":scope > *").forEach(node => {
+                        nodes.push(node);
+                    });
                     parentNode.appendChild(cloneNode);
                     cloneNode.dnxUpdate();
                 }
