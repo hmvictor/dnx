@@ -145,7 +145,6 @@ function process(element, executionStack) {
             let sibling=e.nextSibling;
             let generated=[];
             updaters.push(() => {
-                e.dnxRenderIgnore=true;
                 for(let g of generated) {
                     g.remove();
                 }
@@ -158,7 +157,6 @@ function process(element, executionStack) {
                     }));
                     parent.insertBefore(cloneNode, sibling);
                     generated.push(cloneNode);
-                    cloneNode.dnxRenderIgnore=true;
                     cloneNode.dnxUpdate();
                 }
                 e.remove();
@@ -167,9 +165,7 @@ function process(element, executionStack) {
         },
         "[dnx-innerHTML]": function(e, attributeName, attributeValueExpr, executionStack) {
             updaters.push(() => {
-                if(!e.dnxRenderIgnore){
-                    attributeCopier(e, attributeName, attributeValueExpr, executionStack);
-                }
+                attributeCopier(e, attributeName, attributeValueExpr, executionStack);
             });
         },
         "[dnx-attached]": function(e, attributeName, attributeValueExpr, executionStack) {
