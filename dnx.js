@@ -5,8 +5,10 @@ class ExecutionStack {
     constructor(content) {
         if(Array.isArray(content)){
             this.list=content;
-        }else{
+        }else if(content){
             this.list=[content];
+        }else{
+            this.list=[];
         }
     }
     
@@ -35,6 +37,31 @@ class ExecutionStack {
     
 }
 
+class AttributeValueExpression {
+    
+    constructor(expr) {
+        this.expr=expr;
+    }
+    
+    getValue(self, executionStack) {
+        return Function(executionStack ? executionStack.getVarNames(): [], "return "+this.expr+";").apply(self, executionStack ? executionStack.getVarValues(): []);
+    }
+    
+    setValue(self, value, executionStack) {
+        let executionElement={
+            name: "value",
+            value: value
+        };
+        let assignExecutionStack=executionStack ? executionStack.add(executionElement): new ExecutionStack(executionElement);
+        Function(assignExecutionStack.getVarNames(), this.expr+"=value;").apply(self, assignExecutionStack.getVarValues());
+    }
+    
+    execute(self, executionStack) {
+        return Function(executionStack? executionStack.getVarNames(): [], this.expr).apply(self, executionStack? executionStack.getVarValues(): []);
+    }
+    
+}
+
 function dnx(elementParam, contextParam) {
     let element;
     if(typeof elementParam === "string" || typeof elementParam === "String") {
@@ -56,8 +83,14 @@ function dnx(elementParam, contextParam) {
         context.name=element.getAttribute("dnx-contextName");
     }
     
-    if(!(contextParam && contextParam.value) && element.getAttribute("dnx-contextValue")) {
-        context.value=Function("return "+element.getAttribute("dnx-contextValue")+";").apply(element, []);
+    let contextValueExpr=null;
+    
+    if(element.getAttribute("dnx-contextValue")) {
+        contextValueExpr=new AttributeValueExpression(element.getAttribute("dnx-contextValue"));
+    }
+    
+    if(!(contextParam && contextParam.value) && contextValueExpr) {
+        context.value=contextValueExpr.getValue(null);
     }
     
     let proxy=wrapProxy(element, context);
@@ -65,8 +98,9 @@ function dnx(elementParam, contextParam) {
         name: context.name,
         value: proxy
     }));
-    if(element.getAttribute("dnx-contextValue")) {
-        Function("proxy", element.getAttribute("dnx-contextValue")+"=proxy;").apply(element, [proxy]);
+    
+    if(contextValueExpr) {
+        contextValueExpr.setValue(element, proxy);
     }
     element.dnxRoot=true;
     element.dnxUpdate();
@@ -96,33 +130,17 @@ function wrapProxy(element, context) {
     });
 }
 
-const evaluator={
-    doCall: (executionStack, expr) => {
-        return Function(executionStack.getVarNames(), expr).apply(null, executionStack.getVarValues());
-    },
-    doReturnGetterExpr: (executionStack, expr) => {
-        return Function(executionStack.getVarNames(), "return "+expr+";").apply(null, executionStack.getVarValues());
-    },
-    doAssignSetterExpr: (executionStack, expr, value) => {
-        let asignExecutionStack=executionStack.add({
-            name: "value",
-            value: value
-        });
-        Function(asignExecutionStack.getVarNames(), expr+"=value;").apply(null, asignExecutionStack.getVarValues());
-    }
-};
-
 let processedElements=[];
 
-function process(element, environment) {
+function process(element, executionStack) {
     let updaters=[];
     
-    function attributeCopier(e, attributeName, attributeValueExp, environment) {
-        e[attributeName]=Function(environment.getVarNames(), "return "+attributeValueExp+";").apply(null, environment.getVarValues());
+    function attributeCopier(e, attributeName, attributeValueExp, executionStack) {
+        e[attributeName]=attributeValueExp.getValue(null, executionStack);
     }
 
     const processorsBySelector={
-        "[dnx-items]": function(e, attributeName, attributeValue, environment) {
+        "[dnx-items]": function(e, attributeName, attributeValueExpr, executionStack) {
             let parent=e.parentNode;
             let sibling=e.nextSibling;
             let generated=[];
@@ -132,9 +150,9 @@ function process(element, environment) {
                     g.remove();
                 }
                 generated.length=0;
-                for(let item of Function(environment.getVarNames(), "return "+attributeValue+";").apply(null, environment.getVarValues())) {
+                for(let item of attributeValueExpr.getValue(null, executionStack)) {
                     let cloneNode=e.cloneNode(true);
-                    process(cloneNode, environment.add({
+                    process(cloneNode, executionStack.add({
                         name: e.getAttribute("dnx-item"),
                         value: item
                     }));
@@ -147,20 +165,20 @@ function process(element, environment) {
             });
             processedElements.push(e);
         },
-        "[dnx-innerHTML]": function(e, attributeName, attributeValue, environment) {
+        "[dnx-innerHTML]": function(e, attributeName, attributeValueExpr, executionStack) {
             updaters.push(() => {
                 if(!e.dnxRenderIgnore){
-                    attributeCopier(e, attributeName, attributeValue, environment);
+                    attributeCopier(e, attributeName, attributeValueExpr, executionStack);
                 }
             });
         },
-        "[dnx-attached]": function(e, attributeName, attributeValue, environment) {
+        "[dnx-attached]": function(e, attributeName, attributeValueExpr, executionStack) {
             let parent=e.parentNode;
             let next={
                 value:null
             };
             updaters.push(() => {
-                const value=Function(environment.getVarNames(), "return "+attributeValue+";").apply(null, environment.getVarValues());
+                const value=attributeValueExpr.getValue(null, executionStack);
                 if(value) {
                     if(!e.parentNode) {
                         if(next.value){
@@ -177,70 +195,59 @@ function process(element, environment) {
                 }
             });
         },
-        "[dnx-disabled]": function(e, attributeName, attributeValue, environment) {
+        "[dnx-disabled]": function(e, attributeName, attributeValueExpr, executionStack) {
             updaters.push(() => {
-                attributeCopier(e, attributeName, attributeValue, environment);
+                attributeCopier(e, attributeName, attributeValueExpr, executionStack);
             });
         },
-        "img[dnx-src]": function(e, attributeName, attributeValue, environment) {
+        "img[dnx-src]": function(e, attributeName, attributeValueExpr, executionStack) {
             updaters.push(() => {
-                attributeCopier(e, attributeName, attributeValue, environment);
+                attributeCopier(e, attributeName, attributeValueExpr, executionStack);
             });
         },
-        "[dnx-click]": function(e, attributeName, attributeValue, environment) {
+        "[dnx-click]": function(e, attributeName, attributeValueExpr, executionStack) {
             e.addEventListener(attributeName, (event) =>{
-                let localExecutionContext=environment.add({
+                attributeValueExpr.execute(null, executionStack.add({
                     name: "event",
                     value: event
-                });
-                Function(localExecutionContext.getVarNames(), attributeValue).apply(null, localExecutionContext.getVarValues());
+                }));
                 element.dnxUpdate();
             }); 
         },
-        "[dnx-submit]": function(e, attributeName, attributeValue, environment) {
+        "[dnx-submit]": function(e, attributeName, attributeValueExpr, executionStack) {
             e.addEventListener(attributeName, (event) =>{
-                let localExecutionContext=environment.add({
+                attributeValueExpr.execute(null, executionStack.add({
                     name: "value",
                     value: event.target.value
-                });
-                Function(localExecutionContext.getVarNames(), attributeValue).apply(null, localExecutionContext.getVarValues());
+                }));
                 element.dnxUpdate();
             }); 
         },
-        "[dnx-input]": function(e, attributeName, attributeValue, environment) {
+        "[dnx-input]": function(e, attributeName, attributeValueExpr, executionStack) {
             e.addEventListener(attributeName, (event) =>{
-                let localExecutionContext=environment.add({
+                attributeValueExpr.execute(null, executionStack.add({
                     name: "value",
                     value: event.target.value
-                });
-                Function(localExecutionContext.getVarNames(), attributeValue).apply(null, localExecutionContext.getVarValues());
+                }));
                 element.dnxUpdate();
             }); 
         },
-        "[dnx-value]": function(e, attributeName, attributeValue, environment) {
+        "[dnx-value]": function(e, attributeName, attributeValueExpr, executionStack) {
             e.addEventListener("input", function(event) {
-                let localExecutionContext=environment.add({
-                    name: "value",
-                    value: event.target.value
-                });
-                Function(localExecutionContext.getVarNames(), attributeValue+"=value;").apply(null, localExecutionContext.getVarValues());
+                attributeValueExpr.setValue(null, event.target.value, executionStack);
                 element.dnxUpdate();
             });
             updaters.push(() => {
-                attributeCopier(e, attributeName, attributeValue, environment);
+                attributeCopier(e, attributeName, attributeValueExpr, executionStack);
             });
         },
-        "[dnx-checked]": function(e, attributeName, attributeValue, environment) {
+        "[dnx-checked]": function(e, attributeName, attributeValueExpr, executionStack) {
             e.addEventListener("input", function(event) {
-                let localExecutionContext=environment.add({
-                    name: "value",
-                    value: event.target.value
-                });
-                Function(localExecutionContext.getVarNames(), attributeValue+"=value;").apply(null, localExecutionContext.getVarValues());
+                attributeValueExpr.setValue(null, event.target.value, executionStack);
                 element.dnxUpdate();
             });
             updaters.push(() => {
-                attributeCopier(e, attributeName, attributeValue, environment);
+                attributeCopier(e, attributeName, attributeValueExpr, executionStack);
             });
         }
     };
@@ -271,7 +278,7 @@ function process(element, environment) {
                         let dnxAttributeName=/.*\[(dnx-.+)\]/.exec(selector)[1];
                         let attributeName=/dnx-(.+)/.exec(dnxAttributeName)[1]
                         console.log("prepare attribute"+selector+": "+dnxAttributeName);
-                        processorsBySelector[selector](e, attributeName, e.getAttribute(dnxAttributeName), environment);
+                        processorsBySelector[selector](e, attributeName, new AttributeValueExpression(e.getAttribute(dnxAttributeName)), executionStack);
                     }
                 }
             }
